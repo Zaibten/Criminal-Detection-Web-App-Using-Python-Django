@@ -1,4 +1,4 @@
-# Criminal Detection Web App Using Python Django 🌐👮‍♂️
+# 🌐 Criminal Detection Web App Using Python Django 👮‍♂️
 
 # 🚔 Empowering Law Enforcement with Technology
 Introducing my latest innovation: a Criminal Detection Web Application built with Python Django! This platform integrates real-time criminal detection, video analysis, and a robust admin panel to provide a seamless and effective solution for modern law enforcement.
