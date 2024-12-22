@@ -1,70 +1,97 @@
 {% extends "layout/base.html" %}
 {% block main_content %}
     {% load static %}
-<div class="main-content-inner">
-                <div class="card-area">
-                    {% if messages %}
-                        <div class="span12">
-                            {% for message in messages %}
-                                <div class="alert alert-success">
-                                    {{ message|safe }}
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                    <div class="row">
-                        <div class="col-lg-2 col-md-6 mt-5"></div>
-                        <div class="col-lg-4 col-md-6 mt-5">
-                            <div class="card card-bordered">
-                                <img class="card-img-top img-fluid" src="{% static  'assets/images/card/camera.jpg' %}" alt="image" height = 100px >
-                                <div class="card-body">
-                                    <h5 class="title">Upload a photo</h5>
-                                    <p class="card-text">Upload a picture for our system to detect if it's a criminal.</p>
-
-                                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalLong">Upload Picture</button>
-                                    <div class="modal fade" id="exampleModalLong">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Upload Picture</h5>
-
-                                            </div>
-                                            <form method="post" action="/detectImage" enctype="multipart/form-data">
-                                                {% csrf_token %}
-                                            <div class="modal-body">
-                                                <input type="file" name="image" required>
-                                            </div>
-
-                                            <div class="modal-footer">
-                                                <a  type="button" class="btn btn-secondary" data-dismiss="modal">Close</a>
-                                                <button type="submit" class="btn btn-primary">Process</button>
-                                            </div>
-                                                </form>
-                                        </div>
+<div class="main-content-inner" style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+    <div class="card-area">
+        {% if messages %}
+            <div class="span12">
+                {% for message in messages %}
+                    <div class="alert alert-success" style="border-radius: 5px; padding: 10px; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;">
+                        {{ message|safe }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="row">
+            <div class="col-lg-2 col-md-6 mt-5"></div>
+            <div class="col-lg-4 col-md-6 mt-5">
+                <div class="card card-bordered" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); overflow: hidden; animation: fadeIn 1.5s;">
+                    <img class="card-img-top img-fluid" src="{% static 'assets/images/card/camera.jpg' %}" alt="image" style="height: 200px; object-fit: cover;">
+                    <div class="card-body" style="padding: 15px; text-align: center;">
+                        <h5 class="title" style="font-weight: bold; color: #333;">Upload a Photo</h5>
+                        <p class="card-text" style="color: #555;">Upload a picture for our system to detect if it's a criminal.</p>
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModalLong"
+                            style="background-color: #007bff; border: none; border-radius: 5px; padding: 10px 15px; color: white; transition: all 0.3s ease; cursor: pointer;"
+                            onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)';"
+                            onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)';">
+                            Upload Picture
+                        </button>
+                        <div class="modal fade" id="exampleModalLong">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header" style="background-color: #f1f1f1; border-bottom: 1px solid #ddd;">
+                                        <h5 class="modal-title" style="color: #333;">Upload Picture</h5>
                                     </div>
-                                </div>
+                                    <form method="post" action="/detectImage" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <div class="modal-body" style="padding: 20px;">
+                                            <input type="file" name="image" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        </div>
+                                        <div class="modal-footer" style="border-top: 1px solid #ddd; padding: 10px;">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                                style="border-radius: 5px; padding: 10px 15px; background-color: #6c757d; color: white; cursor: pointer; transition: all 0.3s ease;"
+                                                onmouseover="this.style.backgroundColor='#5a6268'; this.style.transform='scale(1.05)';"
+                                                onmouseout="this.style.backgroundColor='#6c757d'; this.style.transform='scale(1)';">
+                                                Close
+                                            </button>
+                                            <button type="submit" class="btn btn-primary"
+                                                style="background-color: #007bff; border: none; border-radius: 5px; padding: 10px 15px; color: white; cursor: pointer; transition: all 0.3s ease;"
+                                                onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)';"
+                                                onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)';">
+                                                Process
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>
-              
-
-
-                        <div class="col-lg-4 col-md-6 mt-5">
-                            <div class="card card-bordered">
-                                <img class="card-img-top img-fluid" src="{% static  'assets/images/card/webcam.jpg' %}" alt="image" height = 100px>
-                                <div class="card-body">
-                                    <h5 class="title">Use Webcam Instead.</h5>
-                                    <p class="card-text">Webcam is used to model CCTV cameras in this case.
-                                    </p>
-                                    <a href="/detectWithWebcam" class="btn btn-primary">Open Webcam</a>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-lg-2 col-md-6 mt-5">
+                    </div>
                 </div>
             </div>
+
+            <div class="col-lg-4 col-md-6 mt-5">
+                <div class="card card-bordered" style="border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); overflow: hidden; animation: fadeIn 1.5s;">
+                    <img class="card-img-top img-fluid" src="{% static 'assets/images/card/webcam.jpg' %}" alt="image" style="height: 200px; object-fit: cover;">
+                    <div class="card-body" style="padding: 15px; text-align: center;">
+                        <h5 class="title" style="font-weight: bold; color: #333;">Use Webcam Instead</h5>
+                        <p class="card-text" style="color: #555;">Webcam is used to model CCTV cameras in this case.</p>
+                        <a href="/detectWithWebcam" class="btn btn-primary"
+                            style="background-color: #007bff; border: none; border-radius: 5px; padding: 10px 15px; color: white; text-decoration: none; display: inline-block; transition: all 0.3s ease; cursor: pointer;"
+                            onmouseover="this.style.backgroundColor='#0056b3'; this.style.transform='scale(1.05)';"
+                            onmouseout="this.style.backgroundColor='#007bff'; this.style.transform='scale(1)';">
+                            Open Webcam
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-6 mt-5"></div>
         </div>
+    </div>
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
 {% endblock %}
 {% block js_content %}
-    <script src="{% static  'assets/js/vendor/jquery-2.2.4.min.js' %}"></script>
+    <script src="{% static 'assets/js/vendor/jquery-2.2.4.min.js' %}"></script>
 {% endblock %}

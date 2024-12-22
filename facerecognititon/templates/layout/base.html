@@ -5,10 +5,11 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="x-ua-compatible" content="ie=edge">
-    <title>Criminal Indentification</title>
+    <title>Zaibten Security</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- <link rel="shortcut icon" type="image/png" href="{% static  'assets/images/icon/logo.png' %}"> -->
     <link rel="stylesheet" href="{% static  'assets/css/bootstrap.min.css' %}">
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logo/logo.png' %}">
     <link rel="stylesheet" href="{% static  'assets/css/font-awesome.min.css' %}">
     <link rel="stylesheet" href="{% static  'assets/css/themify-icons.css' %}">
     <link rel="stylesheet" href="{% static  'assets/css/metisMenu.css' %}">
@@ -48,7 +49,7 @@
         <div class="sidebar-menu">
             <div class="sidebar-header">
                 <div class="logo">
-                    <a href="#"><img src="{% static  'assets/images/police/police.jpg' %}" alt="logo"></a>
+                    <a href="#"><img src="{% static  'assets/images/logo/logo.png' %}" alt="logo" style="border-radius: 50%;"></a>
                 </div>
             </div>
             <div class="main-menu">
@@ -78,6 +79,16 @@
            
             <div class="header-area">
                 <div class="row align-items-center">
+                    <!-- Marquee for scrolling text -->
+                    <div class="col-md-12">
+                        <div class="marquee-container">
+                            <marquee behavior="scroll" direction="left" scrollamount="10">
+                                📢 Welcome to Zaibten Security | Ensuring Your Safety and Privacy 🔐 | Advanced Solutions for a Secure Future 🚀 | Contact Us Today for Reliable Protection 🛡️
+                            </marquee>
+                                                    </div>
+                    </div>
+                </div>
+                <div class="row align-items-center">
                     
                     <div class="col-md-6 col-sm-8 clearfix">
                         <div class="nav-btn pull-left">
@@ -88,10 +99,12 @@
 
                     </div>
                     <div class="row align-items-center">
-                    <div align="right" style="float: right;margin-left:auto; margin-right:0">
+                        
+                        <h1 style="margin-left: 32px; text-align: center; color: rgb(100, 99, 99); font-size: 25px; font-weight: bold;">Zaibten Securities Private Limited</h1>
+                    <div align="right" style="float: right;margin-left:320px; margin-right:0;">
                     <div class="col-sm-12 clearfix">
                         <div class="user-profile pull-right">
-                            <img class="avatar user-thumb" src="{% static  'assets/images/author/avatar.jpg' %}" alt="avatar">
+                            <img class="avatar user-thumb" src="{% static  'assets/images/author/avatar.png' %}" alt="avatar">
                             <h4 class="user-name dropdown-toggle" data-toggle="dropdown">{{request.session.name}} {{request.session.surname}} <i class="fa fa-angle-down"></i></h4>
                             <div class="dropdown-menu">
                                 <a class="dropdown-item" href="/logout">Log Out</a>
@@ -125,7 +138,7 @@
   
         <footer>
             <div class="footer-area">
-                <p>Criminal Identification System using Face Recognition.</p>
+                <p>All rights reserved to Zaibten Security</p>
             </div>
         </footer>
    
