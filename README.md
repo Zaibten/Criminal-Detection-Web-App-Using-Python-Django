@@ -67,6 +67,12 @@ password = PASSWORD
 default-character-set = utf8
 ```
 
+Apply migrations
+```bash
+ python manage.py makemigrations
+ python manage.py migrate
+```
+
 To start the app
 ```bash
  python manage.py runserver
