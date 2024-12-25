@@ -77,7 +77,7 @@ To start the app
 ```bash
  python manage.py runserver
 ```
-And run on local host 8000
+And run on local host
 
 ```bash
 And open http://127.0.0.1:8000/ at your system
