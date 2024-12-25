@@ -35,6 +35,56 @@ Introducing my latest innovation: a Criminal Detection Web Application built wit
 # Why This Project Matters?
 In an era where safety is paramount, this project provides a holistic solution to modern security challenges. By combining the power of AI, web technologies, and real-time processing, it aims to make the world a safer place.
 
+## How to run the application
+### Installation requirements
+First of all, clone the git hub repository on your machine.  
+Make sure you have python downloaded, incase you haven't already visit this link: https://www.python.org/downloads/  
+
+To install the required packages use the following command
+
+```bash
+ pip install -r requirements.txt
+```
+Libraries and Framework used:  
+Python == 3.6.15   
+Django == 3.2.3   
+Django Rest Framework == 3.13.1 
+Numpy == 1.18.4 
+OpenCV == 4.5.5.64  
+Pillow == 5.4.1
+Dlib == 19.22.0  
+face-recognition == 1.3.0  
+opencv_python_headless == 4.5.5.64 
+JQuery   
+mySQL database 
+
+In settings.py file change the variable DATABASES:
+
+```bash
+# settings.py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'OPTIONS': {
+            'read_default_file': '/path/to/my.cnf',
+        },
+    }
+}
+
+# my.cnf
+[client]
+database = NAME
+user = USER
+password = PASSWORD
+default-character-set = utf8
+```
+
+To start the app
+```bash
+ python manage.py runserver
+```
+And open http://127.0.0.1:8000/ at your system
+
 # 🔗 Let’s innovate together! If you’re interested in collaborating or have feedback, I’d love to hear from you. 😊
 
 # 💡 Join the conversation:
