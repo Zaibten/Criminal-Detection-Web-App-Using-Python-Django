@@ -84,8 +84,7 @@ To start the app
  python manage.py runserver
 ```
 And open http://127.0.0.1:8000/ at your system
-
-# 🔗 Let’s innovate together! If you’re interested in collaborating or have feedback, I’d love to hear from you. 😊
+🔗 Let’s innovate together! If you’re interested in collaborating or have feedback, I’d love to hear from you. 😊
 
 # 💡 Join the conversation:
 What features would you like to see in a real-time criminal detection system? Let’s discuss how we can make security smarter and more efficient. 🚀
