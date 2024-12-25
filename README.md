@@ -1,4 +1,4 @@
-# 🌐 Zaibten Criminal Detection Web App Using Python Django 👮‍♂️
+# 🌐 Criminal Detection Web App Using Python Django 👮‍♂️
 Zaibten Security is a robust web application designed to identify criminals by leveraging their stored images and live webcam footage. It integrates modern technologies like face recognition, computer vision, and real-time video streaming to enable efficient and accurate detection of known criminals.
 
 # 🚔 Empowering Law Enforcement with Technology
