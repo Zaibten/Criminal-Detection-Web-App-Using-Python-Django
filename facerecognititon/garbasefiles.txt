@@ -1,0 +1,1375 @@
+def detectWithWebcam(request):
+    global last_detected_criminal, last_detection_time
+
+    # Load known face encodings and names dynamically from the database
+    known_face_encodings = []
+    known_face_names = []
+
+    criminals = Criminal.objects.filter(status="Wanted")
+
+    for criminal in criminals:
+        image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+        if os.path.exists(image_path):
+            criminal_image = face_recognition.load_image_file(image_path)
+            criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+            known_face_encodings.append(criminal_encoding)
+            known_face_names.append(criminal)
+        else:
+            print(f"Error: Criminal image file {image_path} not found.")
+
+    # Initialize webcam
+    video_capture = cv2.VideoCapture(0)
+    if not video_capture.isOpened():
+        print("Error: Could not access the webcam.")
+        return
+
+    print("Starting real-time criminal detection. Press 'q' to quit.")
+
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            print("Error: Failed to read from webcam.")
+            break
+
+        # Convert the frame to RGB for face recognition
+        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Detect all face locations and encodings in the frame
+        face_locations = face_recognition.face_locations(rgb_frame)
+        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+            name = "Observing Object...."
+            # box_color = (255, 0, 0)  # Blue color
+            box_color = (0, 0, 255)  # Red color
+
+            if True in matches:
+                first_match_index = matches.index(True)
+                criminal = known_face_names[first_match_index]
+                name = criminal.name
+
+                # If the detected criminal is the same as the last detected one
+                if last_detected_criminal == criminal:
+                    # If the detection happened after 3 minutes from the last detection
+                    if time.time() - last_detection_time > 180:  # 180 seconds = 3 minutes
+                        send_criminal_email(criminal, request.user.email, frame)
+                        print(f"Email sent for {criminal.name} after 3 minutes.")
+                        # Update last detection time to the current time
+                        last_detection_time = time.time()
+                    else:
+                        print(f"Detected {criminal.name}, but email will be sent later.")
+                else:
+                    # New criminal detected, send email immediately
+                    send_criminal_email(criminal, request.user.email, frame)
+                    print(f"Email sent immediately for {criminal.name}.")
+                    # Update last detection time to the current time
+                    last_detection_time = time.time()
+                
+                # Update last detected criminal
+                last_detected_criminal = criminal
+
+                # Save the detected image
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"{criminal.name}_{criminal.address}_wanted_Zaibten_Security_{timestamp}.jpg"
+                image_path = os.path.join(settings.MEDIA_ROOT, "detected_criminals", filename)
+                os.makedirs(os.path.dirname(image_path), exist_ok=True)
+                cv2.imwrite(image_path, frame)
+
+                # Database update (optional, if needed)
+                CriminalLastSpotted.objects.filter(aadhar_no=criminal.aadhar_no).delete()
+                CriminalLastSpotted.objects.create(
+                    name=criminal.name,
+                    aadhar_no=criminal.aadhar_no,
+                    address=criminal.address,
+                    picture=criminal.picture,
+                    status=criminal.status,
+                    latitude="25.3176° N",
+                    longitude="82.9739° E",
+                )
+                print(f"Detected wanted criminal: {criminal.name}. Data replaced in database.")
+
+            # Draw bounding box and label
+            cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+            cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
+
+        # Display the video frame with detection results
+        cv2.imshow("Real-Time Criminal Detection", frame)
+
+        # Exit on pressing 'q'
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    # Release resources
+    video_capture.release()
+    cv2.destroyAllWindows()
+    return redirect('/success')
+
+# def send_criminal_email(criminal, recipient_email, camera_frame):
+#     sender_email = "muzamilkhanofficial786@gmail.com"
+#     password = "iaqu xvna tpix ugkt"
+
+#     # HTML email body with labeled images
+#     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
+#     html_body = f"""
+#     <html>
+#         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
+#             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+#                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
+#                     <img src="cid:logo" alt="Criminal Detection Logo" style="width: 100px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+#                     <h1 style="color: #ffffff; font-size: 20px; margin: 0;">Criminal Detection System</h1>
+#                 </header>
+#                 <section style="padding: 20px;">
+#                     <h2 style="color: #333;">Criminal Detected: {criminal.name}</h2>
+#                     <p style="color: #555;">The following details were recorded for the detected criminal:</p>
+#                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Name:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.name}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Address:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.address}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">CNIC No:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">Malir Checkpost 2</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Latitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">25.3176° N</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Longitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">82.9739° E</td>
+#                         </tr>
+#                     </table>
+#                     <p style="color: #555;">Please take immediate action as required.</p>
+
+#                     <!-- Adding images with labels -->
+#                     <h3 style="color: #333;">Images:</h3>
+#                     <p style="color: #555;">1. <strong>Real-Time Detected Image (from camera):</strong> This is the live captured image from the camera at the time of detection.</p>
+#                     <img src="cid:camera_image" alt="Real-Time Detected Image" style="width: 100%; height: auto; max-width: 300px; border-radius: 5px; margin-bottom: 20px;">
+#                     <p style="color: #555;">2. <strong>Criminal Image (from system):</strong> This is the image of the detected criminal stored in the system.</p>
+#                     <img src="cid:criminal_image" alt="Criminal Image" style="width: 100%; height: auto; max-width: 300px; border-radius: 5px; margin-bottom: 20px;">
+#                     </section>
+#                 <footer style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+#                     <p>© {datetime.now().year} Criminal Detection System. All rights reserved.</p>
+#                 </footer>
+#             </div>
+#         </body>
+#     </html>
+#     """
+
+#     # Create email message
+#     msg = MIMEMultipart("related")
+#     msg['From'] = formataddr(("Criminal Detection System", sender_email))
+#     msg['To'] = recipient_email
+#     msg['Subject'] = subject
+
+#     # Attach HTML content
+#     msg.attach(MIMEText(html_body, 'html'))
+
+#     # Attach logo image
+#     logo_path = os.path.join(os.getcwd(), "static", "assets", "images", "logo.png")
+#     with open(logo_path, 'rb') as f:
+#         logo_data = f.read()
+#     logo = MIMEImage(logo_data)
+#     logo.add_header('Content-ID', '<logo>')
+#     logo.add_header('Content-Disposition', 'inline', filename="logo.png")
+#     msg.attach(logo)
+
+#     # Attach criminal image (image stored in system)
+#     criminal_image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#     with open(criminal_image_path, 'rb') as f:
+#         criminal_img_data = f.read()
+#     criminal_img = MIMEImage(criminal_img_data)
+#     criminal_img.add_header('Content-ID', '<criminal_image>')
+#     criminal_img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(criminal_image_path))
+#     msg.attach(criminal_img)
+
+#     # Attach camera image (real-time detected image)
+#     _, img_encoded = cv2.imencode('.jpg', camera_frame)
+#     img_data = img_encoded.tobytes()
+#     camera_img = MIMEImage(img_data)
+#     camera_img.add_header('Content-ID', '<camera_image>')
+#     camera_img.add_header('Content-Disposition', 'attachment', filename="detected_criminal.jpg")
+#     msg.attach(camera_img)
+
+#     # Send the email
+#     try:
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(sender_email, password)
+#             server.sendmail(sender_email, recipient_email, msg.as_string())
+#         print(f"Email sent to {recipient_email} successfully!")
+#     except Exception as e:
+#         print(f"Failed to send email: {e}")
+
+
+
+
+
+# def send_criminal_email(criminal, recipient_email, camera_frame):
+#     sender_email = "muzamilkhanofficial786@gmail.com"
+#     password = "iaqu xvna tpix ugkt"
+
+#     # HTML email body with labeled images
+#     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
+#     html_body = f"""
+#     <html>
+#         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
+#             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+#                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
+#                     <img src="cid:logo" alt="Criminal Detection Logo" style="width: 100px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+#                     <h1 style="color: #ffffff; font-size: 20px; margin: 0;">Criminal Detection System</h1>
+#                 </header>
+#                 <section style="padding: 20px;">
+#                     <h2 style="color: #333;">Criminal Detected: {criminal.name}</h2>
+#                     <p style="color: #555;">The following details were recorded for the detected criminal:</p>
+#                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Name:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.name}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Address:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.address}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Aadhar No:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">Malir Checkpost 2</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Latitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">25.3176° N</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Longitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">82.9739° E</td>
+#                         </tr>
+#                     </table>
+#                     <p style="color: #555;">Please take immediate action as required.</p>
+
+#                     <!-- Adding images with labels -->
+#                     <h3 style="color: #333;">Images:</h3>
+#                     <p style="color: #555;">1. <strong>Criminal Image (from system):</strong> This is the image of the detected criminal stored in the system.</p>
+#                     <img src="cid:criminal_image" alt="Criminal Image" style="width: 100%; height: auto; max-width: 300px; border-radius: 5px; margin-bottom: 20px;">
+#                     <p style="color: #555;">2. <strong>Real-Time Detected Image (from camera):</strong> This is the live captured image from the camera at the time of detection.</p>
+#                     <img src="cid:camera_image" alt="Real-Time Detected Image" style="width: 100%; height: auto; max-width: 300px; border-radius: 5px; margin-bottom: 20px;">
+#                 </section>
+#                 <footer style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+#                     <p>© {datetime.now().year} Criminal Detection System. All rights reserved.</p>
+#                 </footer>
+#             </div>
+#         </body>
+#     </html>
+#     """
+
+#     # Create email message
+#     msg = MIMEMultipart("related")
+#     msg['From'] = formataddr(("Criminal Detection System", sender_email))
+#     msg['To'] = recipient_email
+#     msg['Subject'] = subject
+
+#     # Attach HTML content
+#     msg.attach(MIMEText(html_body, 'html'))
+
+#     # Attach logo image
+#     logo_path = os.path.join(os.getcwd(), "static", "assets", "images", "logo.png")
+#     with open(logo_path, 'rb') as f:
+#         logo_data = f.read()
+#     logo = MIMEImage(logo_data)
+#     logo.add_header('Content-ID', '<logo>')
+#     logo.add_header('Content-Disposition', 'inline', filename="logo.png")
+#     msg.attach(logo)
+
+#     # Attach criminal image (image stored in system)
+#     criminal_image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#     with open(criminal_image_path, 'rb') as f:
+#         criminal_img_data = f.read()
+#     criminal_img = MIMEImage(criminal_img_data)
+#     criminal_img.add_header('Content-ID', '<criminal_image>')
+#     criminal_img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(criminal_image_path))
+#     msg.attach(criminal_img)
+
+#     # Attach camera image (real-time detected image)
+#     _, img_encoded = cv2.imencode('.jpg', camera_frame)
+#     img_data = img_encoded.tobytes()
+#     camera_img = MIMEImage(img_data)
+#     camera_img.add_header('Content-ID', '<camera_image>')
+#     camera_img.add_header('Content-Disposition', 'attachment', filename="detected_criminal.jpg")
+#     msg.attach(camera_img)
+
+#     # Send the email
+#     try:
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(sender_email, password)
+#             server.sendmail(sender_email, recipient_email, msg.as_string())
+#         print(f"Email sent to {recipient_email} successfully!")
+#     except Exception as e:
+#         print(f"Failed to send email: {e}")
+
+
+
+
+
+# def send_criminal_email(criminal, recipient_email, camera_frame):
+#     sender_email = "muzamilkhanofficial786@gmail.com"
+#     password = "iaqu xvna tpix ugkt"
+
+#     # HTML email body with labeled images
+#     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
+#     html_body = f"""
+#     <html>
+#         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
+#             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+#                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
+#                     <img src="cid:logo" alt="Criminal Detection Logo" style="width: 100px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+#                     <h1 style="color: #ffffff; font-size: 20px; margin: 0;">Criminal Detection System</h1>
+#                 </header>
+#                 <section style="padding: 20px;">
+#                     <h2 style="color: #333;">Criminal Detected: {criminal.name}</h2>
+#                     <p style="color: #555;">The following details were recorded for the detected criminal:</p>
+#                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Name:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.name}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Address:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.address}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Aadhar No:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">Malir Checkpost 2</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Latitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">25.3176° N</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Longitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">82.9739° E</td>
+#                         </tr>
+#                     </table>
+#                     <p style="color: #555;">Please take immediate action as required.</p>
+
+#                     <!-- Adding images with labels -->
+#                     <h3 style="color: #333;">Images:</h3>
+#                     <p style="color: #555;">1. <strong>Criminal Image (from system):</strong> This is the image of the detected criminal stored in the system.</p>
+#                     <img src="cid:criminal_image" alt="Criminal Image" style="width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px;">
+#                     <p style="color: #555;">2. <strong>Real-Time Detected Image (from camera):</strong> This is the live captured image from the camera at the time of detection.</p>
+#                     <img src="cid:camera_image" alt="Real-Time Detected Image" style="width: 100%; height: auto; border-radius: 5px; margin-bottom: 20px;">
+#                 </section>
+#                 <footer style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+#                     <p>© {datetime.now().year} Criminal Detection System. All rights reserved.</p>
+#                 </footer>
+#             </div>
+#         </body>
+#     </html>
+#     """
+
+#     # Create email message
+#     msg = MIMEMultipart("related")
+#     msg['From'] = formataddr(("Criminal Detection System", sender_email))
+#     msg['To'] = recipient_email
+#     msg['Subject'] = subject
+
+#     # Attach HTML content
+#     msg.attach(MIMEText(html_body, 'html'))
+
+#     # Attach logo image
+#     logo_path = os.path.join(os.getcwd(), "static", "assets", "images", "logo.png")
+#     with open(logo_path, 'rb') as f:
+#         logo_data = f.read()
+#     logo = MIMEImage(logo_data)
+#     logo.add_header('Content-ID', '<logo>')
+#     logo.add_header('Content-Disposition', 'inline', filename="logo.png")
+#     msg.attach(logo)
+
+#     # Attach criminal image (image stored in system)
+#     criminal_image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#     with open(criminal_image_path, 'rb') as f:
+#         criminal_img_data = f.read()
+#     criminal_img = MIMEImage(criminal_img_data)
+#     criminal_img.add_header('Content-ID', '<criminal_image>')
+#     criminal_img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(criminal_image_path))
+#     msg.attach(criminal_img)
+
+#     # Attach camera image (real-time detected image)
+#     _, img_encoded = cv2.imencode('.jpg', camera_frame)
+#     img_data = img_encoded.tobytes()
+#     camera_img = MIMEImage(img_data)
+#     camera_img.add_header('Content-ID', '<camera_image>')
+#     camera_img.add_header('Content-Disposition', 'attachment', filename="detected_criminal.jpg")
+#     msg.attach(camera_img)
+
+#     # Send the email
+#     try:
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(sender_email, password)
+#             server.sendmail(sender_email, recipient_email, msg.as_string())
+#         print(f"Email sent to {recipient_email} successfully!")
+#     except Exception as e:
+#         print(f"Failed to send email: {e}")
+
+
+
+# def detectWithWebcam(request):
+#     global last_detected_criminal, last_detection_time
+
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.filter(status="Wanted")
+
+#     for criminal in criminals:
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(criminal)
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access the webcam.")
+#         return
+
+#     print("Starting real-time criminal detection. Press 'q' to quit.")
+
+#     while True:
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         # Convert the frame to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Detect all face locations and encodings in the frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Observing Object...."
+#             box_color = (0, 0, 255)  # Red for Criminal
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 criminal = known_face_names[first_match_index]
+#                 name = criminal.name
+
+#                 # If the detected criminal is the same as the last detected one
+#                 if last_detected_criminal == criminal:
+#                     # If the detection happened after 3 minutes from the last detection
+#                     if time.time() - last_detection_time > 180:  # 180 seconds = 3 minutes
+#                         send_criminal_email(criminal, request.user.email, frame)
+#                         print(f"Email sent for {criminal.name} after 3 minutes.")
+#                         # Update last detection time to the current time
+#                         last_detection_time = time.time()
+#                     else:
+#                         print(f"Detected {criminal.name}, but email will be sent later.")
+#                 else:
+#                     # New criminal detected, send email immediately
+#                     send_criminal_email(criminal, request.user.email, frame)
+#                     print(f"Email sent immediately for {criminal.name}.")
+#                     # Update last detection time to the current time
+#                     last_detection_time = time.time()
+                
+#                 # Update last detected criminal
+#                 last_detected_criminal = criminal
+
+#                 # Save the detected image
+#                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#                 filename = f"{criminal.name}_MalirCheckpost2_ZaibtenSecurities_{timestamp}.jpg"
+#                 image_path = os.path.join(settings.MEDIA_ROOT, "detected_criminals", filename)
+#                 os.makedirs(os.path.dirname(image_path), exist_ok=True)
+#                 cv2.imwrite(image_path, frame)
+
+#                 # Database update (optional, if needed)
+#                 CriminalLastSpotted.objects.filter(aadhar_no=criminal.aadhar_no).delete()
+#                 CriminalLastSpotted.objects.create(
+#                     name=criminal.name,
+#                     aadhar_no=criminal.aadhar_no,
+#                     address=criminal.address,
+#                     picture=criminal.picture,
+#                     status=criminal.status,
+#                     latitude="25.3176° N",
+#                     longitude="82.9739° E",
+#                 )
+#                 print(f"Detected wanted criminal: {criminal.name}. Data replaced in database.")
+
+#             # Draw bounding box and label
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
+
+#         # Display the video frame with detection results
+#         cv2.imshow("Real-Time Criminal Detection", frame)
+
+#         # Exit on pressing 'q'
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release resources
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+# def send_criminal_email(criminal, recipient_email, camera_frame):
+#     sender_email = "muzamilkhanofficial786@gmail.com"
+#     password = "iaqu xvna tpix ugkt"
+
+#     # HTML email body
+#     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
+#     html_body = f"""
+#     <html>
+#         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
+#             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+#                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
+#                     <img src="cid:logo" alt="Criminal Detection Logo" style="width: 100px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+#                     <h1 style="color: #ffffff; font-size: 20px; margin: 0;">Criminal Detection System</h1>
+#                 </header>
+#                 <section style="padding: 20px;">
+#                     <h2 style="color: #333;">Criminal Detected: {criminal.name}</h2>
+#                     <p style="color: #555;">The following details were recorded for the detected criminal:</p>
+#                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Name:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.name}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Address:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.address}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Aadhar No:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">Malir Checkpost 2</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Latitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">25.3176° N</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Longitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">82.9739° E</td>
+#                         </tr>
+#                     </table>
+#                     <p style="color: #555;">Please take immediate action as required.</p>
+#                 </section>
+#                 <footer style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+#                     <p>© {datetime.now().year} Criminal Detection System. All rights reserved.</p>
+#                 </footer>
+#             </div>
+#         </body>
+#     </html>
+#     """
+
+#     # Create email message
+#     msg = MIMEMultipart("related")
+#     msg['From'] = formataddr(("Criminal Detection System", sender_email))
+#     msg['To'] = recipient_email
+#     msg['Subject'] = subject
+
+#     # Attach HTML content
+#     msg.attach(MIMEText(html_body, 'html'))
+
+#     # Attach logo image
+#     logo_path = os.path.join(os.getcwd(), "static", "assets", "images", "logo.png")
+#     with open(logo_path, 'rb') as f:
+#         logo_data = f.read()
+#     logo = MIMEImage(logo_data)
+#     logo.add_header('Content-ID', '<logo>')
+#     logo.add_header('Content-Disposition', 'inline', filename="logo.png")
+#     msg.attach(logo)
+
+#     # Attach criminal image (image stored in system)
+#     criminal_image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#     with open(criminal_image_path, 'rb') as f:
+#         criminal_img_data = f.read()
+#     criminal_img = MIMEImage(criminal_img_data)
+#     criminal_img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(criminal_image_path))
+#     msg.attach(criminal_img)
+
+#     # Attach camera image (real-time detected image)
+#     _, img_encoded = cv2.imencode('.jpg', camera_frame)
+#     img_data = img_encoded.tobytes()
+#     camera_img = MIMEImage(img_data)
+#     camera_img.add_header('Content-Disposition', 'attachment', filename="detected_criminal.jpg")
+#     msg.attach(camera_img)
+
+#     # Send the email
+#     try:
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(sender_email, password)
+#             server.sendmail(sender_email, recipient_email, msg.as_string())
+#         print(f"Email sent to {recipient_email} successfully!")
+#     except Exception as e:
+#         print(f"Failed to send email: {e}")
+
+
+
+
+
+
+# def detectWithWebcam(request):
+#     global last_detected_criminal, last_detection_time
+
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.filter(status="Wanted")
+
+#     for criminal in criminals:
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(criminal)
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access the webcam.")
+#         return
+
+#     print("Starting real-time criminal detection. Press 'q' to quit.")
+
+#     while True:
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         # Convert the frame to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Detect all face locations and encodings in the frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Observing Object...."
+#             box_color = (0, 0, 255)  # Red for Criminal
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 criminal = known_face_names[first_match_index]
+#                 name = criminal.name
+
+#                 # If the detected criminal is the same as the last detected one
+#                 if last_detected_criminal == criminal:
+#                     # If the detection happened after 3 minutes from the last detection
+#                     if time.time() - last_detection_time > 180:  # 180 seconds = 3 minutes
+#                         send_criminal_email(criminal, recipient_email, image_path)
+#                         print(f"Email sent for {criminal.name} after 3 minutes.")
+#                         # Update last detection time to the current time
+#                         last_detection_time = time.time()
+#                     else:
+#                         print(f"Detected {criminal.name}, but email will be sent later.")
+#                 else:
+#                     # New criminal detected, send email immediately
+#                     recipient_email = User.objects.get(id=request.session['id']).email
+#                     send_criminal_email(criminal, recipient_email, image_path)
+#                     print(f"Email sent immediately for {criminal.name}.")
+#                     # Update last detection time to the current time
+#                     last_detection_time = time.time()
+                
+#                 # Update last detected criminal
+#                 last_detected_criminal = criminal
+
+#                 # Save the detected image and database update
+#                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+#                 filename = f"{criminal.name}_MalirCheckpost2_ZaibtenSecurities_{timestamp}.jpg"
+#                 image_path = os.path.join(settings.MEDIA_ROOT, "detected_criminals", filename)
+#                 os.makedirs(os.path.dirname(image_path), exist_ok=True)
+#                 cv2.imwrite(image_path, frame)
+
+#                 # Database update (optional, if needed)
+#                 CriminalLastSpotted.objects.filter(aadhar_no=criminal.aadhar_no).delete()
+#                 CriminalLastSpotted.objects.create(
+#                     name=criminal.name,
+#                     aadhar_no=criminal.aadhar_no,
+#                     address=criminal.address,
+#                     picture=criminal.picture,
+#                     status=criminal.status,
+#                     latitude="25.3176° N",
+#                     longitude="82.9739° E",
+#                 )
+#                 print(f"Detected wanted criminal: {criminal.name}. Data replaced in database.")
+
+#             # Draw bounding box and label
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
+
+#         # Display the video frame with detection results
+#         cv2.imshow("Real-Time Criminal Detection", frame)
+
+#         # Exit on pressing 'q'
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release resources
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+# def send_criminal_email(criminal, recipient_email, image_path):
+
+#     sender_email = "muzamilkhanofficial786@gmail.com"
+#     password = "iaqu xvna tpix ugkt"
+
+#     # HTML email body
+#     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
+#     html_body = f"""
+#     <html>
+#         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
+#             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+#                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
+#                     <img src="cid:logo" alt="Criminal Detection Logo" style="width: 100px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+#                     <h1 style="color: #ffffff; font-size: 20px; margin: 0;">Criminal Detection System</h1>
+#                 </header>
+#                 <section style="padding: 20px;">
+#                     <h2 style="color: #333;">Criminal Detected: {criminal.name}</h2>
+#                     <p style="color: #555;">The following details were recorded for the detected criminal:</p>
+#                     <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px;">
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Name:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.name}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Address:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.address}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Aadhar No:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">Malir Checkpost 2</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Latitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">25.3176° N</td>
+#                         </tr>
+#                         <tr>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Longitude:</td>
+#                             <td style="padding: 10px; border-bottom: 1px solid #ddd;">82.9739° E</td>
+#                         </tr>
+#                     </table>
+#                     <p style="color: #555;">Please take immediate action as required.</p>
+#                 </section>
+#                 <footer style="background: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
+#                     <p>© {datetime.now().year} Criminal Detection System. All rights reserved.</p>
+#                 </footer>
+#             </div>
+#         </body>
+#     </html>
+#     """
+
+#     # Create email message
+#     msg = MIMEMultipart("related")
+#     msg['From'] = formataddr(("Criminal Detection System", sender_email))
+#     msg['To'] = recipient_email
+#     msg['Subject'] = subject
+
+#     # Attach HTML content
+#     msg.attach(MIMEText(html_body, 'html'))
+
+#     # Attach logo image
+#     logo_path = os.path.join(os.getcwd(), "static", "assets", "images", "logo.png")
+#     with open(logo_path, 'rb') as f:
+#         logo_data = f.read()
+#     logo = MIMEImage(logo_data)
+#     logo.add_header('Content-ID', '<logo>')
+#     logo.add_header('Content-Disposition', 'inline', filename="logo.png")
+#     msg.attach(logo)
+
+#     # Attach criminal image
+#     with open(image_path, 'rb') as f:
+#         img_data = f.read()
+#     img = MIMEImage(img_data)
+#     img.add_header('Content-Disposition', 'attachment', filename=os.path.basename(image_path))
+#     msg.attach(img)
+
+#     # Send the email
+#     try:
+#         with smtplib.SMTP('smtp.gmail.com', 587) as server:
+#             server.starttls()
+#             server.login(sender_email, password)
+#             server.sendmail(sender_email, recipient_email, msg.as_string())
+#         print(f"Email sent to {recipient_email} successfully!")
+#     except Exception as e:
+#         print(f"Failed to send email: {e}")
+
+
+
+
+
+
+
+
+
+# view to detect and recognise faces
+# def detectImage(request):
+#     # function to detect faces and draw a rectangle around the faces
+#     # with correct face label
+
+#     if request.method == 'POST' and request.FILES['image']:
+#         myfile = request.FILES['image']
+#         fs = FileSystemStorage()
+#         filename = fs.save(myfile.name, myfile)
+#         uploaded_file_url = fs.url(filename)
+
+#     # get the criminal id, name, images from the database
+#     images=[]
+#     encodings=[]
+#     names=[]
+#     files=[]
+
+#     prsn=Criminal.objects.all()
+#     for criminal in prsn:
+#         images.append(criminal.name+'_image')
+#         encodings.append(criminal.name+'_face_encoding')
+#         files.append(criminal.picture)
+#         names.append(criminal.name+ ' '+ criminal.address)
+
+    
+#     for i in range(0,len(images)):
+#         images[i]=face_recognition.load_image_file(files[i])
+#         encodings[i]=face_recognition.face_encodings(images[i])[0]
+
+
+
+
+#     # encoding the faces of the criminals in the database 
+#     # creating array of their names
+#     known_face_encodings = encodings
+#     known_face_names = names
+
+#     # loading the image that is coming from the front end
+#     unknown_image = face_recognition.load_image_file(uploaded_file_url[1:])
+
+#     # finding face locations and encoding of that image
+#     face_locations = face_recognition.face_locations(unknown_image)
+#     face_encodings = face_recognition.face_encodings(unknown_image, face_locations)
+
+#     # converting the image to PIL format
+#     pil_image = Image.fromarray(unknown_image)
+#     #Draw a rectangle over the face
+#     draw = ImageDraw.Draw(pil_image)
+
+#     # run a for loop to find if faces in the input image matches to that 
+#     # of our encoding present in the DB
+#     for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#         # compare the face to the criminals present
+#         matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+
+#         name = "This is civilian not criminal!!!"
+
+#         # find distance w.r.t to the faces of criminals present in the DB
+#         # take the minimum distance
+#         # see if it matches the faces
+#         # if matches update the name variable to the respective criminal name
+#         face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+#         best_match_index = np.argmin(face_distances)
+#         if matches[best_match_index]:
+#             name = known_face_names[best_match_index]
+
+
+#         # with pollow module draw a rectangle around the face
+#         # draw.rectangle(((left, top), (right, bottom)), outline=(0, 0, 255))
+#         draw.rectangle(((left, top), (right, bottom)), outline=(255, 0, 0))  # Red color
+        
+#         text_width, text_height = draw.textsize(name)
+#         draw.rectangle(((left, bottom - text_height - 10), (right, bottom)), fill=(255, 0, 0), outline=(255, 0, 0))  # Red color
+#         draw.text((left + 6, bottom - text_height - 5), name, fill=(255, 255, 255, 255))  # White text
+
+#         # put a label of name of the person below
+#         # text_width, text_height = draw.textsize(name)
+#         # draw.rectangle(((left, bottom - text_height - 10), (right, bottom)), fill=(0, 0, 255), outline=(0, 0, 255))
+#         # draw.text((left + 6, bottom - text_height - 5), name, fill=(255, 255, 255, 255))
+
+#     # Remove the drawing library from memory 
+#     del draw
+
+#     # display the image 
+#     pil_image.show()
+#     return redirect('/success')
+
+# def detectWithWebcam(request):
+#     # Load known face encodings and names
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     # Define the image path using BASE_DIR
+#     image_path = os.path.join(settings.BASE_DIR, 'static', 'assets', 'images', 'card', '8.jpg')
+    
+#     # Load known face and names
+#     try:
+#         known_personal_image = face_recognition.load_image_file(image_path)
+#         known_face_person_encoding = face_recognition.face_encodings(known_personal_image)[0]
+
+#         known_face_encodings.append(known_face_person_encoding)
+#         known_face_names.append("Criminal")
+
+#     except FileNotFoundError:
+#         print(f"Error: The image file at {image_path} was not found.")
+#         # Handle the error appropriately (e.g., return an error message)
+
+#     # Initialize Webcam
+#     video_capture = cv2.VideoCapture(0)
+
+#     while True:
+#         # Capture frame-by-frame
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             break
+
+#         # Convert the frame from BGR to RGB
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Find all face locations and face encodings in the current video frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         # Loop through each face found in the frame
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             # Check if the face matches any known faces
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Civilian"
+#             box_color = (0, 255, 0)  # Green for Civilian
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 name = known_face_names[first_match_index]
+#                 box_color = (0, 0, 255)  # Red for Criminal
+
+#             # Draw a box around the face
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+
+#             # Draw a label with a name below the face
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, box_color, 2)
+
+#         # Display the resulting frame
+#         cv2.imshow("Video", frame)
+
+#         # Break the loop when the "q" key is pressed
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release the webcam and close OpenCV windows
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+# def detectWithWebcam(request):
+#     # Access the default camera
+#     video_capture = cv2.VideoCapture(0)
+
+#     # Loading faces and data from the database
+#     known_face_encodings = []
+#     known_face_names = []
+#     national_ids = []
+
+#     criminals = Criminal.objects.all()
+
+#     # Load criminal data
+#     for criminal in criminals:
+#         image_path = criminal.picture.path  # Assuming the 'picture' field stores the file path
+#         image = face_recognition.load_image_file(image_path)
+#         encoding = face_recognition.face_encodings(image)
+
+#         if encoding:
+#             known_face_encodings.append(encoding[0])  # Save only the first encoding in case there are multiple
+#             known_face_names.append(f"Name: {criminal.name}, Aadhar: {criminal.aadhar_no}, Address: {criminal.address}")
+#             national_ids.append(criminal.aadhar_no)
+
+#     while True:
+#         # Capture frame-by-frame
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             break
+
+#         # Convert the frame from BGR to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Find all face locations and encodings in the current video frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         # Process each face found in the frame
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             # Check if the face matches any known faces
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+
+#             name = "Unknown"  # Default name for unknown faces
+#             box_color = (0, 255, 0)  # Green for unknown faces
+
+#             if matches:
+#                 # Get the best match (the face with the smallest distance)
+#                 best_match_index = np.argmin(face_distances)
+#                 if matches[best_match_index]:
+#                     # Match found, retrieve the details
+#                     ntnl_id = national_ids[best_match_index]
+#                     criminal = Criminal.objects.get(aadhar_no=ntnl_id)
+#                     name = f"{known_face_names[best_match_index]}, Status: {criminal.status}"
+#                     box_color = (0, 0, 255)  # Red for wanted criminals
+
+#                     # Add to CriminalLastSpotted if the criminal is wanted
+#                     if criminal.status == 'Wanted':
+#                         CriminalLastSpotted.objects.create(
+#                             name=criminal.name,
+#                             aadhar_no=criminal.aadhar_no,
+#                             address=criminal.address,
+#                             picture=criminal.picture,
+#                             status='Wanted',
+#                             latitude='25.3176° N',  # You can dynamically get GPS data here
+#                             longitude='82.9739° E'  # You can dynamically get GPS data here
+#                         )
+
+#             # Draw a rectangle around the face and add name label
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2)
+
+#         # Display the resulting frame
+#         cv2.imshow("Video", frame)
+
+#         # Break the loop when 'q' is pressed
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release the webcam and close OpenCV windows
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+#     return redirect('/success')
+
+# def detectWithWebcam(request):
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.all()
+#     for criminal in criminals:
+#         # Assuming picture is a relative path stored in the database
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(f"Name: {criminal.name}, CNIC: {criminal.aadhar_no}, Address: {criminal.address}, Criminal Detected")
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access webcam.")
+#         return
+
+#     while True:
+#         # Capture frame-by-frame
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         # Convert frame from BGR to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Detect faces and compute encodings
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         # Loop through detected faces
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             # Compare detected face encodings with known faces
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Civilian"
+#             box_color = (0, 255, 0)  # Green for Civilian
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 name = known_face_names[first_match_index]
+#                 box_color = (0, 0, 255)  # Red for Criminal
+
+#             # Draw a rectangle around the face
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             # Label the detected face
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, box_color, 2)
+
+#         # Display the resulting frame
+#         cv2.imshow("Criminal Detection", frame)
+
+#         # Exit on 'q' key press
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release resources
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+# def detectWithWebcam(request):
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.all()
+#     for criminal in criminals:
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(f"Name: {criminal.name}, Aadhar: {criminal.aadhar_no}, Address: {criminal.address}")
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access webcam.")
+#         return
+
+#     while True:
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Civilian"
+#             box_color = (0, 255, 0)  # Green for Civilian
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 criminal = Criminal.objects.get(name=known_face_names[first_match_index].split(",")[0].split(":")[1].strip())
+#                 name = known_face_names[first_match_index]
+#                 box_color = (0, 0, 255)  # Red for Criminal
+
+#                 # Check if the criminal is wanted
+#                 if criminal.status.lower() == 'Wanted':
+#                     CriminalLastSpotted.objects.create(
+#                         name=criminal.name,
+#                         aadhar_no=criminal.aadhar_no,
+#                         address=criminal.address,
+#                         picture=criminal.picture,
+#                         status='Wanted',
+#                         latitude='25.3176° N',  # Replace with dynamic latitude
+#                         longitude='82.9739° E'  # Replace with dynamic longitude
+#                     )
+#                     print(f"{criminal.name} is a wanted criminal. Details logged.")
+
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, box_color, 2)
+
+#         cv2.imshow("Criminal Detection", frame)
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+
+# def detectWithWebcam(request):
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.all()
+#     for criminal in criminals:
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)  # Ensure `picture` stores the relative path
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(criminal)
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access the webcam.")
+#         return
+
+#     print("Starting real-time criminal detection. Press 'q' to quit.")
+
+#     while True:
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         # Convert the frame to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Detect all face locations and encodings in the frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             # Compare detected faces with known faces
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Civilian"
+#             box_color = (0, 255, 0)  # Green for Civilian
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 criminal = known_face_names[first_match_index]
+#                 name = criminal.name
+#                 box_color = (0, 0, 255)  # Red for Criminal
+
+#                 # Insert criminal spotting data into the database in real-time
+#                 CriminalLastSpotted.objects.create(
+#                     name=criminal.name,
+#                     aadhar_no=criminal.aadhar_no,
+#                     address=criminal.address,
+#                     picture=criminal.picture,
+#                     status=criminal.status,
+#                     latitude="25.3176° N",  # Replace with dynamic GPS latitude
+#                     longitude="82.9739° E",  # Replace with dynamic GPS longitude
+#                 )
+#                 print(f"Detected wanted criminal: {criminal.name}. Data saved to database.")
+
+#             # Draw bounding box and label
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
+
+#         # Display the video frame with detection results
+#         cv2.imshow("Real-Time Criminal Detection", frame)
+
+#         # Exit on pressing 'q'
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release resources
+#     video_capture.release()
+#     cv2.destroyAllWindows()
+
+# import cv2
+# import face_recognition
+# import os
+# from django.conf import settings
+# from django.utils.timezone import now
+# from .models import Criminal, CriminalLastSpotted
+
+# def detectWithWebcam(request):
+#     # Load known face encodings and names dynamically from the database
+#     known_face_encodings = []
+#     known_face_names = []
+
+#     criminals = Criminal.objects.all()
+#     for criminal in criminals:
+#         image_path = os.path.join(settings.BASE_DIR, criminal.picture)  # Ensure `picture` stores the relative path
+#         if os.path.exists(image_path):
+#             criminal_image = face_recognition.load_image_file(image_path)
+#             criminal_encoding = face_recognition.face_encodings(criminal_image)[0]
+#             known_face_encodings.append(criminal_encoding)
+#             known_face_names.append(criminal)
+#         else:
+#             print(f"Error: Criminal image file {image_path} not found.")
+
+#     # Initialize webcam
+#     video_capture = cv2.VideoCapture(0)
+#     if not video_capture.isOpened():
+#         print("Error: Could not access the webcam.")
+#         return
+
+#     print("Starting real-time criminal detection. Press 'q' to quit.")
+
+#     while True:
+#         ret, frame = video_capture.read()
+#         if not ret:
+#             print("Error: Failed to read from webcam.")
+#             break
+
+#         # Convert the frame to RGB for face recognition
+#         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+#         # Detect all face locations and encodings in the frame
+#         face_locations = face_recognition.face_locations(rgb_frame)
+#         face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+#         for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
+#             # Compare detected faces with known faces
+#             matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+#             name = "Detecting......"
+#             # box_color = (0, 255, 0)  # Green for Civilian
+#             box_color = (0, 0, 255)  # Red for Criminal
+
+#             if True in matches:
+#                 first_match_index = matches.index(True)
+#                 criminal = known_face_names[first_match_index]
+#                 name = criminal.name
+#                 box_color = (0, 0, 255)  # Red for Criminal
+
+#                 # Check if the criminal is already spotted
+#                 created_at = CriminalLastSpotted.objects.filter(aadhar_no=criminal.aadhar_no).first()
+#                 if created_at:
+#                     # Update the `updated_at` timestamp
+#                     created_at.updated_at = now()
+#                     created_at.save()
+#                     print(f"Updated spotting time for {criminal.name}.")
+#                 else:
+#                     # Insert new spotting data
+#                     CriminalLastSpotted.objects.create(
+#                         name=criminal.name,
+#                         aadhar_no=criminal.aadhar_no,
+#                         address=criminal.address,
+#                         picture=criminal.picture,
+#                         status=criminal.status,
+#                         latitude="25.3176° N",  # Replace with dynamic GPS latitude
+#                         longitude="82.9739° E",  # Replace with dynamic GPS longitude
+#                     )
+#                     print(f"New spotting record created for {criminal.name}.")
+
+#             # Draw bounding box and label
+#             cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+#             cv2.putText(frame, name, (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
+
+#         # Display the video frame with detection results
+#         cv2.imshow("Real-Time Criminal Detection", frame)
+
+#         # Exit on pressing 'q'
+#         if cv2.waitKey(1) & 0xFF == ord('q'):
+#             break
+
+#     # Release resources
+#     video_capture.release()
+#     cv2.destroyAllWindows()
