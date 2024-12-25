@@ -90,7 +90,7 @@ def addCitizen(request):
 # view to add save citizen
 def saveCitizen(request):
     if request.method == 'POST':
-        citizen=Criminal.objects.filter(aadhar_no=request.POST["aadhar_no"])
+        citizen=Criminal.objects.filter(cnic_no=request.POST["cnic_no"])
         if citizen.exists():
             messages.error(request,"Citizen with that Aadhar Number already exists")
             return redirect(addCitizen)
@@ -102,7 +102,7 @@ def saveCitizen(request):
 
             criminal = Criminal.objects.create(
                 name=request.POST["name"],
-                aadhar_no=request.POST["aadhar_no"],
+                cnic_no=request.POST["cnic_no"],
                 address=request.POST["address"],
                 picture=uploaded_file_url[1:],
                 status="Free"
@@ -150,10 +150,10 @@ def spottedCriminals(request):
 
 def foundThief(request,thief_id):
     free = CriminalLastSpotted.objects.filter(pk=thief_id)
-    freectzn = CriminalLastSpotted.objects.filter(aadhar_no=free.get().aadhar_no).update(status='Found')
+    freectzn = CriminalLastSpotted.objects.filter(cnic_no=free.get().cnic_no).update(status='Found')
     if(freectzn):
         thief = CriminalLastSpotted.objects.filter(pk=thief_id)
-        free = Person.objects.filter(aadhar_no=thief.get().aadhar_no).update(status='Found')
+        free = Person.objects.filter(cnic_no=thief.get().cnic_no).update(status='Found')
         if(free):
             messages.add_message(request,messages.INFO,"Thief updated to found, congratulations")
         else:
@@ -333,10 +333,10 @@ def detectWithWebcam(request):
                 cv2.imwrite(image_path, frame)
 
                 # Database update (optional, if needed)
-                CriminalLastSpotted.objects.filter(aadhar_no=criminal.aadhar_no).delete()
+                CriminalLastSpotted.objects.filter(cnic_no=criminal.cnic_no).delete()
                 CriminalLastSpotted.objects.create(
                     name=criminal.name,
-                    aadhar_no=criminal.aadhar_no,
+                    cnic_no=criminal.cnic_no,
                     address=criminal.address,
                     picture=criminal.picture,
                     status=criminal.status,
@@ -390,7 +390,7 @@ def send_criminal_email(criminal, recipient_email, camera_frame):
                         </tr>
                         <tr>
                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">CNIC No:</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.aadhar_no}</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #ddd;">{criminal.cnic_no}</td>
                         </tr>
                         <tr>
                             <td style="padding: 10px; border-bottom: 1px solid #ddd; font-weight: bold;">Location:</td>

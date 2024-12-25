@@ -22,7 +22,7 @@
                                 <thead class="text-capitalize">
                                 <tr>
                                     <th>Name</th>
-                                    <th>Aadhar Number</th>
+                                    <th>CNIC Number</th>
                                     <th>Address</th>
                                     <th>Date Spotted</th>
                                   
@@ -32,7 +32,7 @@
                                 {% for thief in thiefs %}
                                     <tr>
                                         <td>{{ thief.name }}</td>
-                                        <td>{{ thief.aadhar_no }}</td>
+                                        <td>{{ thief.cnic_no }}</td>
                                         <td>{{ thief.address }}</td>
                                         <td>{{ thief.created_at }}</td>
                                     </tr>

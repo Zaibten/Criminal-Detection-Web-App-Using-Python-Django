@@ -32,7 +32,8 @@ class User(models.Model):
 
 class Criminal(models.Model):
     name = models.CharField(max_length=255)
-    aadhar_no = models.CharField(max_length=255,default=None)
+    cnic_no = models.CharField(max_length=255,default=None)
+    # aadhar_no = models.CharField(max_length=255,default=None)
     address = models.CharField(max_length=255)
     picture = models.CharField(max_length=255)
     status = models.CharField(max_length=255)
@@ -41,7 +42,8 @@ class Criminal(models.Model):
 
 class CriminalLastSpotted(models.Model):
     name = models.CharField(max_length=255)
-    aadhar_no = models.CharField(max_length=255)
+    cnic_no = models.CharField(max_length=255)
+    # aadhar_no = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     picture = models.CharField(max_length=255)
     status = models.CharField(max_length=255)
