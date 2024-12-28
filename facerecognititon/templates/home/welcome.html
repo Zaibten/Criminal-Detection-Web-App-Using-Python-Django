@@ -5,12 +5,14 @@
     <div class="card-area">
         {% if messages %}
             <div class="span12">
-                {% for message in messages %}
-                    <div class="alert alert-success" style="border-radius: 5px; padding: 10px; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb;">
-                        {{ message|safe }}
-                    </div>
-                {% endfor %}
-            </div>
+    {% for message in messages %}
+        <div class="alert alert-success" style="border-radius: 5px; padding: 10px; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; text-transform: capitalize;">
+            <i class="fas fa-check-circle" style="margin-right: 10px;"></i> <!-- Font Awesome check-circle icon -->
+            {{ message|safe }}
+        </div>
+    {% endfor %}
+</div>
+
         {% endif %}
         <div class="row">
             <div class="col-lg-2 col-md-6 mt-5"></div>

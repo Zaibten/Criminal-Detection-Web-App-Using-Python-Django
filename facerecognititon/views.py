@@ -31,7 +31,7 @@ from email.mime.image import MIMEImage
 from email.utils import formataddr
 import time
 from threading import Timer
-
+from django.core.exceptions import PermissionDenied
 import smtplib
 
 
@@ -65,7 +65,7 @@ def login(request):
             request.session['id'] = user.id
             request.session['name'] = user.first_name
             request.session['surname'] = user.last_name
-            messages.add_message(request,messages.INFO,'Welcome to criminal detection system '+ user.first_name+' '+user.last_name)
+            messages.add_message(request,messages.INFO,'Welcome To Zaibten Security System '+ user.first_name+' '+user.last_name)
             return redirect(success)
         else:
             messages.error(request, 'Oops, Wrong password, please try a diffrerent one')
@@ -92,7 +92,7 @@ def saveCitizen(request):
     if request.method == 'POST':
         citizen=Criminal.objects.filter(cnic_no=request.POST["cnic_no"])
         if citizen.exists():
-            messages.error(request,"Citizen with that Aadhar Number already exists")
+            messages.error(request,"Citizen with that CNIC Number already exists")
             return redirect(addCitizen)
         else:
             myfile = request.FILES['image']
@@ -302,7 +302,7 @@ def detectWithWebcam(request):
             if True in matches:
                 first_match_index = matches.index(True)
                 criminal = known_face_names[first_match_index]
-                name = criminal.name
+                name = criminal.name + " Is Criminal"
                 box_color = (0, 0, 255)  # Red color for criminals
 
                 # If the detected criminal is the same as the last detected one
