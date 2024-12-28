@@ -88,5 +88,30 @@ And open http://127.0.0.1:8000/
 What features would you like to see in a real-time criminal detection system? Let’s discuss how we can make security smarter and more efficient. 🚀
 
 # 📸 Some Screenshots of the Project 🖼️✨
+![image](https://github.com/user-attachments/assets/72cfe69f-2225-4d14-b6ac-af8ae979aa49)
+![image](https://github.com/user-attachments/assets/739a8c15-a4c0-4c60-8825-9889933d107c)
+![image](https://github.com/user-attachments/assets/0eddb973-8026-40ad-a483-871311746adf)
+![image](https://github.com/user-attachments/assets/e704fbcf-9b81-403c-9bae-75e512adff70)
+![image](https://github.com/user-attachments/assets/97e3831b-0289-47d6-9da9-9ea80c4aa700)
+![image](https://github.com/user-attachments/assets/7fb11e65-ff7b-4930-b6c5-35bbd9d946fb)
+![image](https://github.com/user-attachments/assets/a3588e42-6043-430f-befc-20ac36d17c7d)
+![image](https://github.com/user-attachments/assets/08bf45e2-3402-4168-9677-0eb3b585474c)
+![image](https://github.com/user-attachments/assets/764d0697-85d2-40bd-a449-39dab7e8824f)
+![image](https://github.com/user-attachments/assets/b8942ff6-0c52-4743-b002-280b897a9387)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
