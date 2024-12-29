@@ -207,6 +207,28 @@
     </div>
 
     <script>
+         // Save login credentials to local storage
+         function saveLoginCredentials(event) {
+            event.preventDefault(); // Prevent form submission
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Save to local storage
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userPassword', password);
+
+            // Submit the form after saving to local storage
+            event.target.submit();
+        }
+
+        // Check if the user is already logged in
+        window.onload = function() {
+            const userEmail = localStorage.getItem('userEmail');
+            if (userEmail) {
+                // Redirect to home page if already logged in
+                window.location.href = '/success';  // Redirect to the home page
+            }
+        };
     document.getElementById("togglePassword").addEventListener("click", function () {
         const passwordField = document.getElementById("exampleInputPassword1");
         const type = passwordField.getAttribute("type") === "password" ? "text" : "password";

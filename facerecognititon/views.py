@@ -35,6 +35,8 @@ from django.core.exceptions import PermissionDenied
 import smtplib
 
 
+
+
 # Add this to track the last detected criminal and time of detection
 last_detected_criminal = None
 last_detection_time = None
@@ -52,28 +54,37 @@ class FileView(APIView):
       return Response(file_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# view for index
+# View for index (login page)
 def index(request):
+    # If the user is already logged in (via session or token), redirect to home page
+    if request.session.get('id'):
+        return redirect('success')  # Or redirect to the desired home page
     return render(request, 'session/login.html')
 
-
-#view for log in
+# View for login
 def login(request):
-    if((User.objects.filter(email=request.POST['login_email']).exists())):
-        user = User.objects.filter(email=request.POST['login_email'])[0]
-        if ((request.POST['login_password']== user.password)):
-            request.session['id'] = user.id
-            request.session['name'] = user.first_name
-            request.session['surname'] = user.last_name
-            messages.add_message(request,messages.INFO,'Welcome To Zaibten Security System '+ user.first_name+' '+user.last_name)
-            return redirect(success)
+    if request.method == 'POST':
+        if User.objects.filter(email=request.POST['login_email']).exists():
+            user = User.objects.get(email=request.POST['login_email'])
+            if request.POST['login_password'] == user.password:
+                # Store the user info in session
+                request.session['id'] = user.id
+                request.session['name'] = user.first_name
+                request.session['surname'] = user.last_name
+                messages.success(request, 'Welcome To Zaibten Security System ' + user.first_name + ' ' + user.last_name)
+                
+                # Set a flag in the session for login state
+                request.session['is_logged_in'] = True
+                
+                return redirect('success')  # Redirect to the success page or home page
+                
+            else:
+                messages.error(request, 'Oops, Wrong password, please try a different one')
+                return redirect('index')
         else:
-            messages.error(request, 'Oops, Wrong password, please try a diffrerent one')
-            return redirect('/')
-    else:
-        messages.error(request, 'Oops, That police ID do not exist')
-        return redirect('/')
-
+            messages.error(request, 'Oops, That email does not exist')
+            return redirect('index')
+    return redirect('index')
 
 #view for log out
 def logOut(request):
