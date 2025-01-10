@@ -1,0 +1,92 @@
+{% extends "layout/base.html" %}
+{% block main_content %}
+    {% load static %}
+    <!-- page title area end -->
+    <div class="main-content-inner">
+        <div class="row">
+            <div class="col-12">
+                <div class="row">
+                    <!-- Textual inputs start -->
+                    <div class="col-12 mt-5">
+                        <div class="card">
+                            <div class="card-body">
+                                <h4 class="header-title">Add Criminal Record In System</h4>
+                                {% if messages %}
+                                    <div class="span12">
+                                        {% for message in messages %}
+                                            <div class="alert alert-danger">
+                                                {{ message|safe }}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <br/>
+                                <form method="post" action="/save_citizen" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label for="example-text-input" class="col-form-label">Name</label>
+                                        <input class="form-control" type="text" name="name" id="example-text-input"
+                                               required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="example-url-input" class="col-form-label">CNIC Number</label>
+                                        <input class="form-control" type="text" name="cnic_no"
+                                               id="example-url-input" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="example-email-input" class="col-form-label">Address</label>
+                                        <input class="form-control" type="text" name="address" id="example-email-input"
+                                               required>
+                                    </div>
+    
+                                    <div class="form-group">
+                                        <label for="example-tel-input" class="col-form-label">Picture</label>
+                                        <input class="form-control" type="file" name="image" id="example-tel-input"
+                                               required>
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="submit" class="btn btn-gradient">Add Criminal</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Textual inputs end -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        .btn-gradient {
+            background: linear-gradient(90deg, #007BFF, #6376e6);
+            color: #fff;
+            border: none;
+            padding: 10px 140px;
+            border-radius: 5px;
+            font-size: 16px;
+            left: 30%;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+        }
+    
+        .btn-gradient:hover {
+            background: linear-gradient(90deg, #6376e6, #007BFF);
+            color: #fff;
+            transform: scale(1.05);
+        }
+    
+        @media (max-width: 768px) {
+            .btn-gradient {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+    
+    </div>
+    <!-- main content area end -->
+{% endblock %}
+{% block js_content %}
+    <script src="{% static  'assets/js/vendor/jquery-2.2.4.min.js' %}"></script>
+{% endblock %}
