@@ -43,6 +43,35 @@ last_detection_time = None
 
 email_timestamps = {}
 
+
+def facedetection(frame, known_face_encodings, known_face_names):
+    dataset_path = os.path.join("static", "dataset" , "best.pt")
+
+    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    face_locations = face_recognition.face_locations(rgb_frame)
+    face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
+
+    for face_encoding, face_location in zip(face_encodings, face_locations):
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+        name = "Civilian"
+        box_color = (0, 255, 0)
+
+        if known_face_encodings:
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+            best_match_index = np.argmin(face_distances) if face_distances.size > 0 else None
+
+            if best_match_index is not None and matches[best_match_index]:
+                name = f"Wanted: {known_face_names[best_match_index]}"
+                box_color = (0, 0, 255)
+
+        top, right, bottom, left = face_location
+        cv2.rectangle(frame, (left, top), (right, bottom), box_color, 2)
+        cv2.rectangle(frame, (left, bottom - 35), (right, bottom), box_color, cv2.FILLED)
+        font = cv2.FONT_HERSHEY_DUPLEX
+        cv2.putText(frame, name, (left + 6, bottom - 6), font, 0.5, (255, 255, 255), 1)
+
+    return frame
+
 class FileView(APIView):
   parser_classes = (MultiPartParser, FormParser)
   def post(self, request, *args, **kwargs):
@@ -64,27 +93,26 @@ def index(request):
 # View for login
 def login(request):
     if request.method == 'POST':
-        if User.objects.filter(email=request.POST['login_email']).exists():
-            user = User.objects.get(email=request.POST['login_email'])
-            if request.POST['login_password'] == user.password:
-                # Store the user info in session
+        email = request.POST['login_email']
+        password = request.POST['login_password']
+        
+        if User.objects.filter(email=email).exists():
+            user = User.objects.get(email=email)
+            if password == user.password:
                 request.session['id'] = user.id
                 request.session['name'] = user.first_name
                 request.session['surname'] = user.last_name
-                messages.success(request, 'Welcome To Zaibten Security System ' + user.first_name + ' ' + user.last_name)
-                
-                # Set a flag in the session for login state
+                messages.success(request, f'Welcome {user.first_name} {user.last_name}!')
                 request.session['is_logged_in'] = True
-                
-                return redirect('success')  # Redirect to the success page or home page
-                
+                return redirect('success')  # Redirect to the success page
             else:
-                messages.error(request, 'Oops, Wrong password, please try a different one')
-                return redirect('index')
+                messages.error(request, 'Invalid password!')
         else:
-            messages.error(request, 'Oops, That email does not exist')
-            return redirect('index')
-    return redirect('index')
+            messages.error(request, 'Invalid email!')
+
+        # Prevent page refresh
+        return render(request, 'session/login.html', {'login_failed': True})
+    return render(request, 'session/login.html')
 
 #view for log out
 def logOut(request):
@@ -320,7 +348,7 @@ def detectWithWebcam(request):
                 if last_detected_criminal == criminal:
                     # If the detection happened after 3 minutes from the last detection
                     if time.time() - last_detection_time > 180:  # 180 seconds = 3 minutes
-                        send_criminal_email(criminal, request.user.email, frame)
+                        send_criminal_email(criminal, frame)
                         print(f"Email sent for {criminal.name} after 3 minutes.")
                         # Update last detection time to the current time
                         last_detection_time = time.time()
@@ -328,7 +356,7 @@ def detectWithWebcam(request):
                         print(f"Detected {criminal.name}, but email will be sent later.")
                 else:
                     # New criminal detected, send email immediately
-                    send_criminal_email(criminal, request.user.email, frame)
+                    send_criminal_email(criminal, frame)
                     print(f"Email sent immediately for {criminal.name}.")
                     # Update last detection time to the current time
                     last_detection_time = time.time()
@@ -373,7 +401,8 @@ def detectWithWebcam(request):
     return redirect('/success')
 
 
-def send_criminal_email(criminal, recipient_email, camera_frame):
+def send_criminal_email(criminal, camera_frame):
+    recipient_email = "muzamilkhanofficials@gmail.com"  # Updated recipient email
     sender_email = "muzamilkhanofficial786@gmail.com"
     password = "iaqu xvna tpix ugkt"
 
@@ -384,8 +413,8 @@ def send_criminal_email(criminal, recipient_email, camera_frame):
         <body style="font-family: 'Arial', sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px;">
             <div style="max-width: 600px; margin: auto; background: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
                 <header style="background-color: #343a40; padding: 20px; text-align: center;">
-                    <img src="cid:logo" alt="Zaibten Security Logo" style="width: 110px; height: auto; border-radius: 50%; margin-bottom: 10px;">
-                    <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Zaibten Security Criminal Alert</h1>
+                    <img src="cid:logo" alt="Eagle Vision Security Logo" style="width: 110px; height: auto; border-radius: 50%; margin-bottom: 10px;">
+                    <h1 style="color: #ffffff; font-size: 24px; margin: 0;">Eagle Vision Security Criminal Alert</h1>
                 </header>
                 <section style="padding: 20px;">
                     <h2 style="color: #333;">⚠️ Criminal Identified: {criminal.name}</h2>
@@ -424,7 +453,7 @@ def send_criminal_email(criminal, recipient_email, camera_frame):
                     <img src="cid:criminal_image" alt="Criminal Image" style="width: 100%; height: auto; max-width: 300px; border-radius: 5px; margin-bottom: 20px;">
                 </section>
                 <footer style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 12px; color: #777;">
-                    <p>© {datetime.now().year} Zaibten Security System. All rights reserved.</p>
+                    <p>© {datetime.now().year} Eagle Vision Security System. All rights reserved.</p>
                 </footer>
             </div>
         </body>

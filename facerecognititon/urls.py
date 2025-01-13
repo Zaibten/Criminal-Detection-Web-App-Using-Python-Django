@@ -8,6 +8,7 @@ from .views import FileView
 
 urlpatterns = [
     url(r'^$', views.index),
+    path('', views.index, name='index'),  # Register the index view
     path('success/', views.success, name='success'),  # Success route
 
     url(r'^add_citizen', views.addCitizen),
