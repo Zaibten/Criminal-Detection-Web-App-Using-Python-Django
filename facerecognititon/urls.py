@@ -17,6 +17,7 @@ urlpatterns = [
 
     path('wanted_citizen/<int:citizen_id>/',views.wantedCitizen,name='wanted_citizen'),
     path('free_citizen/<int:citizen_id>/',views.freeCitizen,name='free_citizen'),
+    path('recommendations/', views.recommend_crime_avoidance, name='recommend_crime_avoidance'),
 
 
     url(r'^login$', views.login),

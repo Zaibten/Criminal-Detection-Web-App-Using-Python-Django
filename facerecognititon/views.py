@@ -505,3 +505,51 @@ def send_criminal_email(criminal, camera_frame):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
+from django.shortcuts import render
+import requests
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+API_KEY = 'f85e94c0729b42b3a16589ba75ea27ea'
+BASE_URL = 'https://newsapi.org/v2/everything'
+
+def fetch_crime_data(query):
+    params = {
+        'q': query,
+        'pageSize': 50,
+        'apiKey': API_KEY,
+        'from_param': '2020-01-29',
+        'page': 1
+    }
+    response = requests.get(BASE_URL, params=params)
+    data = response.json()
+    articles = data.get('articles', [])
+    return pd.DataFrame(articles)
+
+def recommend_crime_avoidance(request):
+    queries = [
+        "robbery AND (manhattan) NOT (novel OR movie OR netflix OR wiki OR film OR tv OR pandemic OR covid-19 OR coronavirus)",
+        "rape AND (manhattan) NOT (novel OR movie OR netflix OR wiki OR film OR tv OR pandemic OR covid-19 OR coronavirus)",
+        "shooting AND (manhattan) NOT (covid-19 OR coronavirus)"
+    ]
+    
+    # Fetch and combine data
+    all_articles = pd.DataFrame()
+    for query in queries:
+        articles = fetch_crime_data(query)
+        all_articles = pd.concat([all_articles, articles], ignore_index=True)
+    
+    # NLP: Calculate TF-IDF and cosine similarity
+    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
+    all_articles['content'] = all_articles['content'].fillna('')  # Fill missing content
+    tfidf_matrix = tfidf_vectorizer.fit_transform(all_articles['content'])
+    similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
+    
+    # Find most relevant articles for avoidance recommendations
+    recommendations = all_articles.loc[similarity_matrix[0].argsort()[-5:][::-1]]
+
+    context = {
+        'recommendations': recommendations.to_dict('records')
+    }
+    return render(request, 'home/recommendation.html', context)
