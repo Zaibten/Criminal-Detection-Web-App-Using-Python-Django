@@ -1,0 +1,335 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Zaibten Security</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/png" href="{% static 'assets/images/logo/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/font-awesome.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/themify-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/responsive.css' %}">
+    <!-- Particle.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js"></script>
+    <style>
+        body {
+            background-color: #000000; /* Black background */
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+    
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+    
+        .login-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.2); /* Light transparent grey */
+            color: #fff;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 600px;
+        }
+    
+        .login-form-head h4 {
+            margin-top: 20px;
+            font-size: 30px;
+            font-weight: bold;
+        }
+    
+        .login-form-head img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%; /* Rounded logo */
+            margin-top: -45px;
+        }
+    
+        .login-form-body {
+            display: flex;
+            flex-direction: column;
+        }
+    
+        .form-gp {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.form-gp input {
+    width: 100%;
+    padding: 18px 40px; /* Add padding for icon space */
+    border: 2px solid #fff;
+    border-radius: 5px;
+    background: transparent;
+    color: #fff;
+    font-size: 16px;
+    transition: all 0.3s ease; /* Smooth transition for hover */
+}
+
+.form-gp i {
+            position: absolute;
+            top: 27%;
+            color: #fff;
+            font-size: 20px;
+        }
+
+        .form-gp i.ti-lock,
+        .form-gp i.ti-email {
+            left: 10px;
+        }
+
+        .form-gp i#togglePassword {
+            right: 10px;
+            cursor: pointer;
+        }
+
+        #togglePassword {
+            right: 10px;
+            cursor: pointer;
+        }
+
+        .ti-eye-off:before {
+            content: "\e63f"; /* Unicode for the eye-off icon */
+        }
+
+    
+        .form-gp input:focus {
+            border-color: #4CAF50;
+            outline: none;
+        }
+    
+        .form-gp input:hover {
+            border-color: #6EC1E4;
+        }
+    
+        ::placeholder {
+            color: #fff;
+            opacity: 1; /* Ensure the placeholder is always visible */
+            transition: color 0.3s ease; /* Smooth transition */
+        }
+    
+        input:focus::placeholder {
+            color: #ccc; /* Slightly dim the placeholder on focus */
+        }
+    
+        .submit-btn-area {
+            text-align: center;
+        }
+    
+        .submit-btn-area button {
+            width: 90%;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: #fff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease; /* Smooth transition for hover */
+        }
+    
+        .submit-btn-area button:hover {
+            background-color: #45a049;
+            transform: scale(1.05); /* Slight zoom effect */
+        }
+    
+        @media (max-width: 768px) {
+            .login-area {
+                padding: 25px;
+                width: 85%;
+            }
+    
+            .login-form-head h4 {
+                font-size: 24px;
+            }
+    
+            .form-gp input {
+                font-size: 14px;
+            }
+        }
+    </style>
+    
+</head>
+
+<body>
+    <div id="particles-js"></div>
+
+    <div class="login-area">
+        <div class="login-form-head text-center" style="background-color: transparent;">
+            <img src="{% static 'assets/images/logo/logo.png' %}">
+            <h4 style="font-size: 25px;">Welcome To Zaibten Security</h4>
+            {% if messages %}
+                <div class="span12">
+                    {% for message in messages %}
+                        <div class="alert alert-danger">
+                            {{ message|safe }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="post" action="/login" style="margin-top: -60px;">
+            {% csrf_token %}
+            <div class="login-form-body">
+                <div class="form-gp">
+                    <input type="text" id="exampleInputEmail1" name="login_email" required placeholder="Enter email here">
+                    <i class="ti-email"></i>
+                </div>
+
+                <div class="form-gp">
+                    <i class="ti-lock" style="position: absolute; top: 30%; left: 10px; color: #fff; font-size: 20px;"></i>
+                    <input type="password" id="exampleInputPassword1" name="login_password" required placeholder="Enter password here" style="padding-left: 35px;">
+                    <i class="ti-eye" id="togglePassword" style="position: absolute; top: 30%; right: 10px; cursor: pointer; color: #fff; font-size: 20px;"></i>
+                </div>
+                
+                
+
+                <div class="submit-btn-area">
+                    <button type="submit" class="btn btn-primary">Login</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+         // Save login credentials to local storage
+         function saveLoginCredentials(event) {
+            event.preventDefault(); // Prevent form submission
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Save to local storage
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userPassword', password);
+
+            // Submit the form after saving to local storage
+            event.target.submit();
+        }
+
+        // Check if the user is already logged in
+        window.onload = function() {
+            const userEmail = localStorage.getItem('userEmail');
+            if (userEmail) {
+                // Redirect to home page if already logged in
+                window.location.href = '/success';  // Redirect to the home page
+            }
+        };
+    document.getElementById("togglePassword").addEventListener("click", function () {
+        const passwordField = document.getElementById("exampleInputPassword1");
+        const type = passwordField.getAttribute("type") === "password" ? "text" : "password";
+        passwordField.setAttribute("type", type);
+        this.classList.toggle("ti-eye");
+        this.classList.toggle("ti-eye-off");
+    });
+
+        particlesJS('particles-js', {
+            "particles": {
+                "number": {
+                    "value": 100,
+                    "density": {
+                        "enable": true,
+                        "value_area": 800
+                    }
+                },
+                "color": {
+                    "value": "#ffffff"
+                },
+                "shape": {
+                    "type": "circle",
+                    "stroke": {
+                        "width": 0,
+                        "color": "#000000"
+                    },
+                    "polygon": {
+                        "nb_sides": 5
+                    }
+                },
+                "opacity": {
+                    "value": 0.7,
+                    "random": false,
+                    "anim": {
+                        "enable": false
+                    }
+                },
+                "size": {
+                    "value": 6,
+                    "random": true,
+                    "anim": {
+                        "enable": true,
+                        "speed": 4,
+                        "size_min": 1
+                    }
+                },
+                "line_linked": {
+                    "enable": true,
+                    "distance": 150,
+                    "color": "#ffffff",
+                    "opacity": 0.4,
+                    "width": 1
+                },
+                "move": {
+                    "enable": true,
+                    "speed": 4,
+                    "direction": "none",
+                    "random": true,
+                    "straight": false,
+                    "out_mode": "out"
+                }
+            },
+            "interactivity": {
+                "detect_on": "canvas",
+                "events": {
+                    "onhover": {
+                        "enable": true,
+                        "mode": "grab"
+                    },
+                    "onclick": {
+                        "enable": true,
+                        "mode": "push"
+                    },
+                    "resize": true
+                },
+                "modes": {
+                    "grab": {
+                        "distance": 140,
+                        "line_linked": {
+                            "opacity": 1
+                        }
+                    },
+                    "bubble": {
+                        "distance": 400,
+                        "size": 40,
+                        "duration": 2,
+                        "opacity": 8,
+                        "speed": 3
+                    },
+                    "repulse": {
+                        "distance": 200,
+                        "duration": 0.4
+                    },
+                    "push": {
+                        "particles_nb": 4
+                    }
+                }
+            },
+            "retina_detect": true
+        });
+    </script>
+</body>
+
+</html>
