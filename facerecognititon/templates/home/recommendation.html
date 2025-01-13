@@ -1,28 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crime Avoidance Recommendations</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css">
-</head>
-<body>
-    <div class="container mt-5">
-        <h1 class="text-center">Crime Avoidance Recommendations</h1>
-        <p class="text-muted text-center">Stay informed and avoid risky areas.</p>
-        <div class="row">
-            {% for article in recommendations %}
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ article.title }}</h5>
-                            <p class="card-text">{{ article.description }}</p>
-                            <a href="{{ article.url }}" target="_blank" class="btn btn-primary">Read More</a>
-                        </div>
-                    </div>
+{% extends "layout/base.html" %}
+{% block main_content %}
+    {% load static %}
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    
+            /* Main Container */
+            .container {
+                width: 90%;
+                max-width: 900px;
+                background: #1d2a43;
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+                text-align: center;
+            }
+    
+            h2 {
+                font-size: 25px;
+                font-weight: 600;
+                margin-bottom: 20px;
+                color: #ffffff;
+                text-transform: uppercase;
+            }
+    
+            p {
+                font-size: 15px;
+                color: #b1b7c3;
+                margin-bottom: 30px;
+                line-height: 1.6;
+            }
+    
+            /* News Scroller */
+            .news-scroller {
+                position: relative;
+                height: 350px;
+                overflow: hidden;
+                border-radius: 12px;
+                background: #27344b;
+                padding: 10px;
+                box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.2);
+            }
+    
+            .news-items {
+                display: flex;
+                flex-direction: column;
+                animation: scroll-up 800s linear infinite;
+            }
+    
+            .news-scroller:hover .news-items {
+                animation-play-state: paused; /* Pause scrolling on hover */
+            }
+    
+            .news-item {
+                padding: 20px;
+                margin: 10px 0;
+                background: #3e5067;
+                border-radius: 15px;
+                color: #ffffff;
+                transition: transform 0.3s, box-shadow 0.3s;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            }
+    
+            .news-item:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 25px rgba(0, 0, 0, 0.4);
+                cursor: pointer;
+            }
+    
+            .news-item h3 {
+                font-size: 22px;
+                font-weight: 600;
+                color: #ffffff;
+                margin: 0;
+            }
+    
+            .news-item p {
+                font-size: 16px;
+                color: #d6d8e0;
+            }
+    
+            .news-item a {
+                font-size: 16px;
+                color: #4fb8e8;
+                text-decoration: none;
+                font-weight: 600;
+                margin-top: 10px;
+                display: inline-block;
+                transition: color 0.3s ease;
+            }
+    
+            .news-item a:hover {
+                color: #f5d300;
+            }
+    
+            @keyframes scroll-up {
+                0% {
+                    transform: translateY(0);
+                }
+                100% {
+                    transform: translateY(-100%); /* Increased movement to show more news */
+                }
+            }
+    
+            /* Modal Styling */
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.85);
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+                transition: opacity 0.3s ease;
+            }
+    
+            .modal-content {
+                position: relative;
+                width: 90%;
+                max-width: 800px;
+                background: #27344b;
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+                color: #ffffff;
+                text-align: center;
+                animation: slideUp 0.5s ease-in-out;
+            }
+    
+            .modal-content h3 {
+                margin-top: 0;
+                font-size: 28px;
+            }
+    
+            .close {
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                font-size: 24px;
+                color: #ffffff;
+                background: #ff4c4c;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                transition: background 0.3s, transform 0.3s;
+            }
+    
+            .close:hover {
+                background: #ff1a1a;
+                transform: scale(1.1);
+            }
+    
+            @keyframes slideUp {
+                0% {
+                    transform: translateY(50px);
+                    opacity: 0;
+                }
+                100% {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+    </style>
+<div class="main-content-inner" style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
+    <div class="card-area">
+        {% if messages %}
+            <div class="span12">
+    {% for message in messages %}
+        <div class="alert alert-success" style="border-radius: 5px; padding: 10px; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; text-transform: capitalize;">
+            <i class="fas fa-check-circle" style="margin-right: 10px;"></i> <!-- Font Awesome check-circle icon -->
+            {{ message|safe }}
+        </div>
+    {% endfor %}
+</div>
+
+        {% endif %}
+        <div class="container">
+            <h2>Pakistan Realtime Crime Headline</h2>
+            <p>Stay informed with the latest updates. Awareness is the key to safety.</p>
+            <div class="news-scroller">
+                <div class="news-items">
+                    {% if recommendations %}
+                        {% for article in recommendations %}
+                            <div class="news-item">
+                                <h3>{{ article.title }}</h3>
+                                <p>{{ article.description }}</p>
+                                <a href="#" class="read-more" data-url="{{ article.url }}">Read More</a>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    <!-- Looping for seamless scrolling (Repeated for more news) -->
+                    {% if recommendations %}
+                        {% for article in recommendations %}
+                            <div class="news-item">
+                                <h3>{{ article.title }}</h3>
+                                <p>{{ article.description }}</p>
+                                <a href="#" class="read-more" data-url="{{ article.url }}">Read More</a>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    <!-- Repeating to show even more -->
+                    {% if recommendations %}
+                        {% for article in recommendations %}
+                            <div class="news-item">
+                                <h3>{{ article.title }}</h3>
+                                <p>{{ article.description }}</p>
+                                <a href="#" class="read-more" data-url="{{ article.url }}">Read More</a>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
-            {% endfor %}
+                
+            </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+  <!-- Modal -->
+  <div id="modal" class="modal">
+    <div class="modal-content">
+        <button class="close">&times;</button>
+        <h3>News Details</h3>
+        <iframe id="modal-iframe" frameborder="0" style="width: 100%; height: 400px;"></iframe>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const modal = document.getElementById('modal');
+        const modalIframe = document.getElementById('modal-iframe');
+        const closeModal = document.querySelector('.modal .close'); // Specific to modal close button
+
+        // Open Modal
+        document.querySelectorAll('.read-more').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const url = this.dataset.url;
+
+                console.log('Opening modal with URL:', url);
+                modal.style.display = 'flex';
+                modalIframe.src = url;
+            });
+        });
+
+        // Close Modal
+        if (closeModal) {
+            closeModal.addEventListener('click', () => {
+                console.log('Closing modal via button');
+                modal.style.display = 'none';
+                modalIframe.src = '';
+            });
+        }
+
+        // Close Modal on Outside Click
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                console.log('Closing modal via outside click');
+                modal.style.display = 'none';
+                modalIframe.src = '';
+            }
+        });
+    });
+</script>
+
+
+{% endblock %}
+{% block js_content %}
+    <script src="{% static 'assets/js/vendor/jquery-2.2.4.min.js' %}"></script>
+{% endblock %}

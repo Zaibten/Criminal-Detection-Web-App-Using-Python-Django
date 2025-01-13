@@ -505,51 +505,44 @@ def send_criminal_email(criminal, camera_frame):
     except Exception as e:
         print(f"Failed to send email: {e}")
 
-from django.shortcuts import render
+import json
 import requests
-import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from django.shortcuts import render
 
-API_KEY = 'f85e94c0729b42b3a16589ba75ea27ea'
-BASE_URL = 'https://newsapi.org/v2/everything'
+# Define the new API key and base URL
+apikey = "34b1e5dff54389435fe655f99480660d"
+url_template = f"https://gnews.io/api/v4/search?q={{}}&lang=en&country=pk&max=10&apikey={apikey}"
 
-def fetch_crime_data(query):
-    params = {
-        'q': query,
-        'pageSize': 50,
-        'apiKey': API_KEY,
-        'from_param': '2020-01-29',
-        'page': 1
-    }
-    response = requests.get(BASE_URL, params=params)
+# List of queries to search for crime-related news in Pakistan
+queries = [
+    "robbery", "rape", "shooting", "terrorism", "murder", 
+    "assault", "armed robbery", "kidnapping", "bomb blast", 
+    "drug trafficking", "human trafficking", "gang violence", 
+    "corruption", "illegal arms", "vandalism"
+]
+
+def fetch_crime_news(query):
+    # Format the URL with the crime-related query
+    url = url_template.format(query)
+    
+    # Fetch data from the GNews API
+    response = requests.get(url)
     data = response.json()
-    articles = data.get('articles', [])
-    return pd.DataFrame(articles)
+    articles = data.get("articles", [])
+    
+    return articles
 
 def recommend_crime_avoidance(request):
-    queries = [
-        "robbery AND (manhattan) NOT (novel OR movie OR netflix OR wiki OR film OR tv OR pandemic OR covid-19 OR coronavirus)",
-        "rape AND (manhattan) NOT (novel OR movie OR netflix OR wiki OR film OR tv OR pandemic OR covid-19 OR coronavirus)",
-        "shooting AND (manhattan) NOT (covid-19 OR coronavirus)"
-    ]
+    all_articles = []
     
-    # Fetch and combine data
-    all_articles = pd.DataFrame()
+    # Fetch and combine articles for each query
     for query in queries:
-        articles = fetch_crime_data(query)
-        all_articles = pd.concat([all_articles, articles], ignore_index=True)
+        articles = fetch_crime_news(query)
+        all_articles.extend(articles)
     
-    # NLP: Calculate TF-IDF and cosine similarity
-    tfidf_vectorizer = TfidfVectorizer(stop_words='english')
-    all_articles['content'] = all_articles['content'].fillna('')  # Fill missing content
-    tfidf_matrix = tfidf_vectorizer.fit_transform(all_articles['content'])
-    similarity_matrix = cosine_similarity(tfidf_matrix, tfidf_matrix)
-    
-    # Find most relevant articles for avoidance recommendations
-    recommendations = all_articles.loc[similarity_matrix[0].argsort()[-5:][::-1]]
-
     context = {
-        'recommendations': recommendations.to_dict('records')
+        'recommendations': all_articles
     }
+    
+    # Render the articles in a Django template
     return render(request, 'home/recommendation.html', context)
