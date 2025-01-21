@@ -33,6 +33,8 @@ import time
 from threading import Timer
 from django.core.exceptions import PermissionDenied
 import smtplib
+from playsound import playsound  # Add this import
+import pygame
 
 
 
@@ -343,6 +345,19 @@ def detectWithWebcam(request):
                 criminal = known_face_names[first_match_index]
                 name = criminal.name + " Is Criminal"
                 box_color = (0, 0, 255)  # Red color for criminals
+
+                alarm_path = os.path.abspath("E:\\Criminal Detection Project\\Eagle Vision Project\\static\\assets\\sound.mp3")
+
+                # Initialize pygame mixer for sound playback
+                pygame.mixer.init()
+
+                # Play the alarm sound
+                try:
+                    pygame.mixer.music.load(alarm_path)
+                    pygame.mixer.music.play()
+                except pygame.error as e:
+                    print(f"Error playing sound: {e}")
+
 
                 # If the detected criminal is the same as the last detected one
                 if last_detected_criminal == criminal:
