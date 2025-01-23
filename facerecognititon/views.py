@@ -417,9 +417,13 @@ def detectWithWebcam(request):
 
 
 def send_criminal_email(criminal, camera_frame):
-    recipient_email = "muzamilkhanofficials@gmail.com"  # Updated recipient email
-    sender_email = "muzamilkhanofficial786@gmail.com"
-    password = "iaqu xvna tpix ugkt"
+    # recipient_email = "muzamilkhanofficials@gmail.com"  # Updated recipient email
+    # sender_email = "muzamilkhanofficial786@gmail.com"
+    # password = "iaqu xvna tpix ugkt"
+    
+    recipient_email = "eagleRF214@gmail.com"  # Updated recipient email
+    sender_email = "eaglevisionrf214@gmail.com"
+    password = "chdk yqxo webz ujxp"
 
     # HTML email body with modern UI
     subject = f"⚠️ Criminal Alert: {criminal.name} Detected"
